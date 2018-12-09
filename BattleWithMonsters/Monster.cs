@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BattleWithMonsters
 {
@@ -14,7 +11,7 @@ namespace BattleWithMonsters
 
         public void Report()
         {
-            Console.WriteLine($"Monster {Name}\t(HP: {HP}, MP: {MP}, STR: {STR}, INT: {INT}), Difficulty level - {Difficulty}, weapon - {Weapon} (Attack: {Weapon.MinDamage} - {Weapon.MaxDamage})");
+            Console.WriteLine($"Monster {Name}\t(HP: {HP}, MP: {MP}, STR: {STR}, INT: {INT}), Difficulty level - {Difficulty}, weapon - {Weapon.Name} (Attack: {Weapon.MinDamage} - {Weapon.MaxDamage})");
         }
 
         public int GetMoney()

@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BattleWithMonsters
 {
@@ -47,7 +44,9 @@ namespace BattleWithMonsters
         {
             EXP -= lvlExp;
             LVL++;
-            Console.WriteLine($"Congrats! Now your LVL is {LVL}"); //!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            HP += 5 * LVL;
+            STR += LVL;
+            Console.WriteLine($"Congrats! Now your LVL is {LVL}");
         }
 
         public void Report()

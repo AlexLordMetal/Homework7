@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace BattleWithMonsters
 {
@@ -12,9 +11,15 @@ namespace BattleWithMonsters
     {
         private Random random = new Random();
 
+        public List<Weapon> Weapons { get; set; }
+        public List<Monster> Monsters { get; set; }
+
         public void Start()
         {
             var player = CreatePlayer();
+            Weapons = WeaponsFromJson("Weapons.json");
+            Monsters = MonstersFromJson("Monsters.json");
+            AddMonstersItems();
             Console.Clear();
             Console.Write($"Welcome to the AdventureGame, {player.Name}!\n\nPress any key to start.");
             Console.ReadKey();
@@ -38,7 +43,7 @@ namespace BattleWithMonsters
             var player = new Player()
             {
                 Name = name,
-                HP = 50,
+                HP = 20,
                 MP = 0,
                 STR = 1,
                 INT = 1,
@@ -117,7 +122,8 @@ namespace BattleWithMonsters
                     Adventure(player);
                     break;
                 case 2:
-                    //BlackJackGame(player);
+                    var cardGame = new CardGame();
+                    cardGame.Start(player);
                     break;
                 default:
                     break;
@@ -156,23 +162,21 @@ namespace BattleWithMonsters
             Console.Clear();
             player.Report();
 
-            var weapons = WeaponsFromJson("Weapons.txt");
-
-            if (weapons.Count != 0)
+            if (Weapons.Count != 0)
             {
-                WeaponsReport(weapons);
-                Console.WriteLine($"{weapons.Count + 1} - Return to shop");
+                WeaponsReport(Weapons);
+                Console.WriteLine($"{Weapons.Count + 1} - Return to shop");
                 Console.Write("\nSelect weapon to buy according to it's number: ");
-                var index = ConditionParse(weapons.Count + 1) - 1;
-                if (index != weapons.Count)
+                var index = ConditionParse(Weapons.Count + 1) - 1;
+                if (index != Weapons.Count)
                 {
-                    if (player.Money >= weapons[index].Cost)
+                    if (player.Money >= Weapons[index].Cost)
                     {
-                        player.Money -= weapons[index].Cost;
-                        player.Inventory.Add(weapons[index]);
-                        Console.WriteLine($"\n\nYou bought {weapons[index].Name}.\n");
+                        player.Money -= Weapons[index].Cost;
+                        player.Inventory.Add(Weapons[index]);
+                        Console.WriteLine($"\n\nYou bought {Weapons[index].Name}.\n");
                     }
-                    else Console.WriteLine($"You don't have enough money to buy {weapons[index].Name}.\n");
+                    else Console.WriteLine($"You don't have enough money to buy {Weapons[index].Name}.\n");
                     Console.Write("Press any key for return to shop");
                     Console.ReadKey();
                 }
@@ -228,8 +232,7 @@ namespace BattleWithMonsters
             Console.Clear();
             player.Report();
 
-            var monsters = MonstersFromJson("Monsters.txt");
-            monsters = monsters.Where(x => x.Difficulty >= player.LVL - 2 && x.Difficulty <= player.LVL + 2).OrderBy(x => x.Difficulty).ToList();
+            var monsters = Monsters.Where(x => x.Difficulty >= player.LVL - 2 && x.Difficulty <= player.LVL + 2).OrderBy(x => x.Difficulty).ToList();
 
             if (monsters.Count != 0)
             {
@@ -243,27 +246,30 @@ namespace BattleWithMonsters
                     var playerHP = player.HP;
                     var monsterHP = monster.HP;
 
+                    Console.Clear();
+                    Console.WriteLine($"You fight with monster {monster.Name}:");
                     var isWin = Battle(player, monster);
                     if (isWin)
                     {
                         var moneyLoot = monster.GetMoney();
                         var itemsLoot = monster.GetItems();
-                        Console.WriteLine($"You won the {monster.Name}. Your loot is {moneyLoot} gold and these items:");
+                        Console.WriteLine($"\nYou won the {monster.Name}. Your loot is {moneyLoot} gold and these items:");
                         ItemsToSellReport(itemsLoot);
+                        
                         player.Money += moneyLoot;
                         player.Inventory.AddRange(itemsLoot);
 
-                        player.EXP = monster.Difficulty * 100;
-                        player.IfLvlUp();
-
+                        player.EXP += monster.Difficulty * 100;
                         player.HP = playerHP;
                         monster.HP = monsterHP;
-                        
+                        player.IfLvlUp();
+
                         Console.Write("\nPress any key for return to tavern");
+                        Console.ReadKey();
                     }
                     else
                     {
-                        Console.WriteLine("You died...\n\nPress any key for exit the game");
+                        Console.WriteLine("\nYou died...\n\nPress any key for exit the game");
                         Console.ReadKey();
                         Environment.Exit(0);
                     }
@@ -281,7 +287,9 @@ namespace BattleWithMonsters
         {
             while (player.HP > 0 && monster.HP > 0)
             {
+                Thread.Sleep(500);
                 Attack(player, monster);
+                Thread.Sleep(500);
                 if (monster.HP > 0) Attack(monster, player);
             }
             return player.HP > 0 ? true : false;
@@ -341,7 +349,20 @@ namespace BattleWithMonsters
             }
         }
 
-        private List<Weapon> WeaponsFromJson(string file)
+        public List<Item> ItemsFromJson(string file)
+        {
+            var items = new List<Item>();
+            if (File.Exists(file))
+            {
+                using (var readFile = new StreamReader(file))
+                {
+                    items = JsonConvert.DeserializeObject<List<Item>>(readFile.ReadLine());
+                }
+            }
+            return items;
+        }
+
+        public List<Weapon> WeaponsFromJson(string file)
         {
             var weapons = new List<Weapon>();
             if (File.Exists(file))
@@ -351,10 +372,11 @@ namespace BattleWithMonsters
                     weapons = JsonConvert.DeserializeObject<List<Weapon>>(readFile.ReadLine());
                 }
             }
+            weapons = weapons.OrderBy(x => x.Cost).ToList();
             return weapons;
         }
 
-        private List<Monster> MonstersFromJson(string file)
+        public List<Monster> MonstersFromJson(string file)
         {
             var monsters = new List<Monster>();
             if (File.Exists(file))
@@ -367,14 +389,35 @@ namespace BattleWithMonsters
             return monsters;
         }
 
+        public void AddMonstersItems()
+        {
+            var items = ItemsFromJson("Items.json");
+
+            foreach (var monster in Monsters)
+            {
+                var counter = random.Next(15, 25);
+                for (int count = 0; count < counter; count++)
+                {
+                    monster.Items.Add(items[random.Next(0, items.Count)]);
+                }
+
+                counter = random.Next(0, 6);
+                for (int count = 0; count < counter; count++)
+                {
+                    monster.Items.Add(Weapons[random.Next(0, Weapons.Count)]);
+                }
+            }
+        }
+
         private void ItemsToSellReport(List<Item> items)
         {
-            if (items.Count == 0) Console.Write("No items");
+            if (items.Count == 0) Console.WriteLine("No items");
             for (int index = 0; index < items.Count; index++)
             {
                 Console.Write($"\t{index + 1} - ");
                 items[index].ReportSellPrice();
             }
         }
+
     }
 }
