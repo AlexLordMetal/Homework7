@@ -16,17 +16,48 @@ namespace BattleWithMonsters
 
         public void Start()
         {
-            var player = CreatePlayer();
             Weapons = WeaponsFromJson("Weapons.json");
             Monsters = MonstersFromJson("Monsters.json");
             AddMonstersItems();
+
+            string[] savFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.sav");
+            if (savFiles.Length > 0)
+            {
+                Console.WriteLine("What do you want to do?\n1 - Start new game\n2 - Load game from save file");
+                if (ConditionParse(2) == 1) NewGame();
+                else LoadGame(savFiles);
+            }
+            else NewGame();
+        }
+
+        public void NewGame()
+        {
+            var player = CreatePlayer();
             Console.Clear();
             Console.Write($"Welcome to the AdventureGame, {player.Name}!\n\nPress any key to start.");
             Console.ReadKey();
             MainMenu(player);
         }
 
-        public Player CreatePlayer()
+        public void LoadGame(string[] savFiles)
+        {
+            Console.WriteLine("\nSave files:");
+            for (int i = 0; i < savFiles.Length; i++)
+            {
+                Console.WriteLine($"{i + 1}. {savFiles[i]}");
+            }
+            Console.Write("Select number of the save file to load:");
+            var player = new CardPlayer();
+            using (var readFile = new StreamReader(savFiles[ConditionParse(savFiles.Length) - 1]))
+            {
+                player = JsonConvert.DeserializeObject<CardPlayer>(readFile.ReadLine());
+            }
+            Console.WriteLine("Game has loaded.\n\nPress any key to continue");
+            Console.ReadKey();
+            MainMenu(player);
+        }
+
+        public CardPlayer CreatePlayer()
         {
             Console.Write("What is your name, adventurer?\nType here: ");
             var name = Console.ReadLine();
@@ -40,7 +71,7 @@ namespace BattleWithMonsters
                 MaxDamage = 2
             };
 
-            var player = new Player()
+            var player = new CardPlayer()
             {
                 Name = name,
                 HP = 20,
@@ -85,8 +116,7 @@ namespace BattleWithMonsters
                         break;
                 }
             }
-            Console.Write($"\nGoodbye, {player.Name}...");
-            Console.ReadKey();
+            SaveAndExit(player);            
         }
 
         public void ShopMenu(Player player)
@@ -123,7 +153,8 @@ namespace BattleWithMonsters
                     break;
                 case 2:
                     var cardGame = new CardGame();
-                    cardGame.Start(player);
+                    var cardPlayer = player as CardPlayer;
+                    cardGame.BlackJackGames(cardPlayer);
                     break;
                 default:
                     break;
@@ -204,8 +235,8 @@ namespace BattleWithMonsters
                 if (index < player.Inventory.Count)
                 {
                     player.Money += (player.Inventory[index].Cost + 1) / 2;
-                    player.Inventory.RemoveAt(index);
                     Console.Write($"\n\nYou sold {player.Inventory[index].Name}.\n\nPress any key for return to shop");
+                    player.Inventory.RemoveAt(index);
                     Console.ReadKey();
                 }
                 else if (index == player.Inventory.Count)
@@ -416,6 +447,49 @@ namespace BattleWithMonsters
             {
                 Console.Write($"\t{index + 1} - ");
                 items[index].ReportSellPrice();
+            }
+        }
+
+        private void SaveAndExit(Player player)
+        {
+            Console.Clear();
+            Console.WriteLine("Do you want to save your game? All unsaved data will be lost..\n1 - Yes\n2 - No");
+            if (ConditionParse(2) == 1)
+            {
+                var cardPlayer = player as CardPlayer;
+                SaveFarmGame(cardPlayer);
+            }
+            Console.Write($"\nGoodbye, {player.Name}...");
+            Console.ReadKey();
+        }
+
+        public void SaveFarmGame(CardPlayer player)
+        {
+            var saved = false;
+            while (saved != true)
+            {
+                Console.Write("Enter a name of save file: ");
+                string saveName = Console.ReadLine() + ".sav";
+                if (File.Exists(saveName) == true)
+                {
+                    Console.WriteLine("A file with this name already exists. Do you Want to overwrite it??\n1 - Yes\n2 - No");
+                    if (ConditionParse(2) == 1)
+                    {
+                        using (StreamWriter writer = new StreamWriter(saveName))
+                        {
+                            writer.Write(JsonConvert.SerializeObject(player));
+                        }
+                        saved = true;
+                    }
+                }
+                else
+                {
+                    using (StreamWriter writer = new StreamWriter(saveName))
+                    {
+                        writer.Write(JsonConvert.SerializeObject(player));
+                    }
+                    saved = true;
+                }
             }
         }
 

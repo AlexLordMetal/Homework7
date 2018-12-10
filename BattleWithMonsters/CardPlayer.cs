@@ -12,7 +12,6 @@ namespace BattleWithMonsters
         {
             Name = name;
             Money = money;
-            Cards = new List<Card>();
         }
 
     }

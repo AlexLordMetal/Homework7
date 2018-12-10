@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace BattleWithMonsters
 {
@@ -8,10 +9,20 @@ namespace BattleWithMonsters
     {
         public List<Card> Deck { get; set; }
 
-        public void Start(Player player)
+        public void Start()
         {
-            CardPlayer cardPlayer = player;
-            BlackJackGames(cardPlayer);
+            //First Star
+            //CreateDeck();
+            //ShuffleDeck();
+            //DeckReport(5);
+            //CardsValueReport(Values.Jack);
+            //CardsSuitReport(Suits.Clubs);
+
+            //Second Star
+            //EmptyCardReport();
+            //DeckInRowReport(6);
+            var player = new CardPlayer("Player");
+            BlackJackGames(player);
         }
 
         public void CreateDeck()
@@ -166,19 +177,22 @@ namespace BattleWithMonsters
 
         public void BlackJackGames(CardPlayer player)
         {
-            player.Cards = new List<Card>();
             var croupier = new CardPlayer("Croupier");
 
-            while (player.Money > 0 && croupier.Money > 0)
+            var isContinue = true;
+            while (isContinue && player.Money >= 5 && croupier.Money > 0)
             {
                 Console.Clear();
-                Console.WriteLine(player.Money);
-                Console.WriteLine(croupier.Money);
                 BlackJackGame(player, croupier);
+                Console.Clear();
+                Console.WriteLine("Do you want to start new blackjack game?\n1 - Yes\n2 - No");
+                if (ConditionParse(2) == 2) isContinue = false;
             }
 
-            if (player.Money <= 0) Console.WriteLine("You lost all your money. GAME OVER.");
-            if (croupier.Money <= 0) Console.WriteLine($"You won all {croupier.Name} money. GAME OVER.");
+            if (player.Money < 5) Console.WriteLine("\nYou haven't enough money. CARD GAME IS OVER.");
+            if (croupier.Money <= 0) Console.WriteLine($"\nYou won all {croupier.Name} money. CARD GAME IS OVER.");
+            Console.WriteLine("\nPress any key to exit");
+            Console.ReadKey();
         }
 
         public void BlackJackGame(CardPlayer player, CardPlayer croupier)
@@ -188,7 +202,8 @@ namespace BattleWithMonsters
             player.Cards = new List<Card>();
             croupier.Cards = new List<Card>();
 
-            var bet = GetPlayerBet();
+            Console.WriteLine($"You have {player.Money} gold.");
+            var bet = GetPlayerBet(player);
 
             DealCards(player, 2);
             DealCards(croupier, 2);
@@ -212,10 +227,25 @@ namespace BattleWithMonsters
             Console.ReadKey();
         }
 
-        private int GetPlayerBet()
-        {
-            Console.WriteLine("Your bet?\n1 - 5\n2 - 10\n3 - 25");
-            switch (ConditionParse(3))
+        private int GetPlayerBet(CardPlayer player)
+        {            
+            var betNumber = 0;
+            if (player.Money >= 25)
+            {
+                Console.WriteLine("Your bet?\n1 - 5\n2 - 10\n3 - 25");
+                betNumber = ConditionParse(3);
+            }
+            else if (player.Money >= 10)
+            {
+                Console.WriteLine("Your bet?\n1 - 5\n2 - 10");
+                betNumber = ConditionParse(2);
+            }
+            else if (player.Money >= 5)
+            {
+                Console.WriteLine("Your bet?\n1 - 5");
+                betNumber = ConditionParse(1);
+            }
+            switch (betNumber)
             {
                 case 1:
                     return 5;
@@ -235,7 +265,7 @@ namespace BattleWithMonsters
             {
                 isCorrect = Int32.TryParse(Console.ReadLine(), out number);
                 if (number <= 0 || number > condition) isCorrect = false;
-                if (isCorrect == false) Console.Write("Ввод некорректен! Еще раз: ");
+                if (isCorrect == false) Console.Write("Incorrect choice! Do it once again: ");
             }
             return number;
         }
@@ -283,6 +313,7 @@ namespace BattleWithMonsters
             PlayerCardsReport(player);
             while (CardsValueSum(player.Cards) < firstPlayerCardsSum && CardsValueSum(player.Cards) < 21)
             {
+                Thread.Sleep(1000);
                 DealCards(player);
                 PlayerCardsReport(player);
             }
